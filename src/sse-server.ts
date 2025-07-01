@@ -257,21 +257,54 @@ function startHttpServer() {
 
   // Health check endpoint
   app.get("/health", (req: Request, res: Response) => {
-    res.json({ 
-      status: "healthy", 
-      server: "WooCommerce MCP/SSE Server",
-      timestamp: new Date().toISOString(),
-      mode: MODE,
-      port: HTTP_PORT,
-      uptime: process.uptime()
-    });
+    try {
+      res.status(200).json({ 
+        status: "healthy", 
+        server: "WooCommerce MCP/SSE Server",
+        timestamp: new Date().toISOString(),
+        mode: MODE,
+        port: HTTP_PORT,
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        pid: process.pid
+      });
+    } catch (error) {
+      console.error('Health check error:', error);
+      res.status(500).json({ 
+        status: "error", 
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   });
 
   // Readiness probe
   app.get("/ready", (req: Request, res: Response) => {
-    res.json({ 
-      status: "ready", 
-      timestamp: new Date().toISOString()
+    try {
+      res.status(200).json({ 
+        status: "ready", 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      });
+    } catch (error) {
+      console.error('Readiness check error:', error);
+      res.status(500).json({ 
+        status: "error", 
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Basic root endpoint
+  app.get("/", (req: Request, res: Response) => {
+    res.json({
+      message: "WooCommerce MCP/SSE Server",
+      version: "1.0.0",
+      endpoints: {
+        health: "/health",
+        ready: "/ready",
+        sse: "/events/{channel}",
+        api: "/api/woocommerce"
+      }
     });
   });
 
@@ -376,13 +409,27 @@ function startHttpServer() {
 
   // Start server
   const port = typeof HTTP_PORT === 'string' ? parseInt(HTTP_PORT) : HTTP_PORT;
+  
   const server = app.listen(port, "0.0.0.0", () => {
     const domain = process.env.EASYPANEL_DOMAIN || `http://localhost:${port}`;
     console.error(`WooCommerce HTTP/SSE Server running on port ${port}`);
     console.error(`SSE endpoints available at: ${domain}/events/{channel}`);
     console.error(`API endpoint available at: ${domain}/api/woocommerce`);
     console.error(`Health check: ${domain}/health`);
+    console.error(`Server ready and accepting connections`);
   });
+
+  server.on('error', (error: any) => {
+    console.error('Server error:', error);
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use`);
+    }
+    process.exit(1);
+  });
+
+  // Keep the process alive
+  server.keepAliveTimeout = 120000; // 2 minutes
+  server.headersTimeout = 120000;
 
   // Graceful shutdown
   const gracefulShutdown = (signal: string) => {
@@ -470,9 +517,25 @@ function startMcpServer() {
 }
 
 // Main server startup
-function main() {
+async function main() {
   try {
+    console.error(`Node.js version: ${process.version}`);
+    console.error(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.error(`Starting WooCommerce server in ${MODE} mode...`);
+    
+    // Keep process alive immediately
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      process.exit(1);
+    });
+    
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      process.exit(1);
+    });
+
+    // Add a small startup delay to ensure everything is ready
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     switch (MODE) {
       case "http":
@@ -493,17 +556,6 @@ function main() {
         }
         break;
     }
-    
-    // Keep process alive
-    process.on('uncaughtException', (error) => {
-      console.error('Uncaught Exception:', error);
-      process.exit(1);
-    });
-    
-    process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-      process.exit(1);
-    });
     
   } catch (error) {
     console.error('Failed to start server:', error);
