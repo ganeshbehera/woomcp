@@ -51,7 +51,7 @@ const DEFAULT_PASSWORD = process.env.WORDPRESS_PASSWORD || "";
 const DEFAULT_CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || "";
 const DEFAULT_CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || "";
 const HTTP_PORT = process.env.PORT || process.env.HTTP_PORT || 3000;
-const MODE = process.env.SERVER_MODE || "hybrid"; // "mcp", "http", or "hybrid"
+const MODE = process.env.SERVER_MODE || "http"; // "mcp", "http", or "hybrid" - default to http for cloud deployments
 
 // Store SSE connections
 const sseConnections = new Map<string, express.Response[]>();

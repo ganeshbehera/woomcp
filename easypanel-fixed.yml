@@ -1,0 +1,41 @@
+name: woocommerce-sse-server
+services:
+  - type: app
+    data:
+      projectName: woocommerce-sse-server
+      serviceName: woocommerce-sse-server
+      source:
+        type: github
+        owner: techspawn
+        repo: woocommerce-mcp-server
+        branch: main
+      build:
+        type: buildpacks
+        buildCommand: npm install && npm run build
+        startCommand: npm start
+      domains:
+        - host: woocommerce-sse.your-domain.com
+      env:
+        - name: SERVER_MODE
+          value: http
+        - name: PORT
+          value: "3000"
+        - name: NODE_ENV
+          value: production
+        - name: WORDPRESS_SITE_URL
+          value: https://your-wordpress-site.com
+        - name: WOOCOMMERCE_CONSUMER_KEY
+          value: ck_your_consumer_key_here
+        - name: WOOCOMMERCE_CONSUMER_SECRET
+          value: cs_your_consumer_secret_here
+        - name: WORDPRESS_USERNAME
+          value: your_wordpress_username
+        - name: WORDPRESS_PASSWORD
+          value: your_wordpress_app_password
+      mounts: []
+      ports:
+        - published: 80
+          target: 3000
+      replicas: 1
+      cpus: 0.5
+      memory: 512 
