@@ -364,10 +364,13 @@ function startHttpServer() {
   });
 
   // Start server
-  app.listen(HTTP_PORT, () => {
-    console.error(`WooCommerce HTTP/SSE Server running on port ${HTTP_PORT}`);
-    console.error(`SSE endpoints available at: http://localhost:${HTTP_PORT}/events/{channel}`);
-    console.error(`API endpoint available at: http://localhost:${HTTP_PORT}/api/woocommerce`);
+  const port = typeof HTTP_PORT === 'string' ? parseInt(HTTP_PORT) : HTTP_PORT;
+  app.listen(port, "0.0.0.0", () => {
+    const domain = process.env.EASYPANEL_DOMAIN || `http://localhost:${port}`;
+    console.error(`WooCommerce HTTP/SSE Server running on port ${port}`);
+    console.error(`SSE endpoints available at: ${domain}/events/{channel}`);
+    console.error(`API endpoint available at: ${domain}/api/woocommerce`);
+    console.error(`Health check: ${domain}/health`);
   });
 
   return app;
