@@ -5,7 +5,7 @@
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "SERVER_MODE=http node build/sse-server.js",
+    "start": "node build/sse-server.js",
     "start:sse": "node build/sse-server.js",
     "start:mcp": "SERVER_MODE=mcp node build/sse-server.js",
     "start:http": "SERVER_MODE=http node build/sse-server.js",

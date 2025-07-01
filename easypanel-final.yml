@@ -1,0 +1,56 @@
+name: woocommerce-sse-server
+services:
+  - type: app
+    data:
+      projectName: woocommerce-sse-server
+      serviceName: woocommerce-sse-server
+      source:
+        type: github
+        owner: your-username
+        repo: woocommerce-mcp-server
+        branch: main
+      build:
+        type: buildpacks
+        buildCommand: npm install && npm run build
+        startCommand: npm start
+      domains:
+        - host: others-woomcp.g5n7ma.easypanel.host
+          https: true
+      env:
+        - name: SERVER_MODE
+          value: http
+        - name: PORT
+          value: "80"
+        - name: NODE_ENV
+          value: production
+        - name: EASYPANEL_DOMAIN
+          value: https://others-woomcp.g5n7ma.easypanel.host
+        - name: WORDPRESS_SITE_URL
+          value: https://your-wordpress-site.com
+        - name: WOOCOMMERCE_CONSUMER_KEY
+          value: ck_your_consumer_key_here
+        - name: WOOCOMMERCE_CONSUMER_SECRET
+          value: cs_your_consumer_secret_here
+        - name: WORDPRESS_USERNAME
+          value: your_wordpress_username
+        - name: WORDPRESS_PASSWORD
+          value: your_wordpress_app_password
+      mounts: []
+      ports:
+        - published: 80
+          target: 80
+      replicas: 1
+      cpus: 1.0
+      memory: 1024
+      healthCheck:
+        path: /health
+        port: 80
+        initialDelaySeconds: 60
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 3
+      readinessProbe:
+        path: /ready
+        port: 80
+        initialDelaySeconds: 30
+        periodSeconds: 10 

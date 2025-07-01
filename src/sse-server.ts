@@ -260,6 +260,17 @@ function startHttpServer() {
     res.json({ 
       status: "healthy", 
       server: "WooCommerce MCP/SSE Server",
+      timestamp: new Date().toISOString(),
+      mode: MODE,
+      port: HTTP_PORT,
+      uptime: process.uptime()
+    });
+  });
+
+  // Readiness probe
+  app.get("/ready", (req: Request, res: Response) => {
+    res.json({ 
+      status: "ready", 
       timestamp: new Date().toISOString()
     });
   });
@@ -365,7 +376,7 @@ function startHttpServer() {
 
   // Start server
   const port = typeof HTTP_PORT === 'string' ? parseInt(HTTP_PORT) : HTTP_PORT;
-  app.listen(port, "0.0.0.0", () => {
+  const server = app.listen(port, "0.0.0.0", () => {
     const domain = process.env.EASYPANEL_DOMAIN || `http://localhost:${port}`;
     console.error(`WooCommerce HTTP/SSE Server running on port ${port}`);
     console.error(`SSE endpoints available at: ${domain}/events/{channel}`);
@@ -373,7 +384,25 @@ function startHttpServer() {
     console.error(`Health check: ${domain}/health`);
   });
 
-  return app;
+  // Graceful shutdown
+  const gracefulShutdown = (signal: string) => {
+    console.error(`Received ${signal}, shutting down gracefully...`);
+    server.close(() => {
+      console.error('Server closed');
+      process.exit(0);
+    });
+    
+    // Force close after 10 seconds
+    setTimeout(() => {
+      console.error('Forcing shutdown');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  return server;
 }
 
 // MCP Server (original stdin/stdout functionality)
@@ -442,26 +471,43 @@ function startMcpServer() {
 
 // Main server startup
 function main() {
-  console.error(`Starting WooCommerce server in ${MODE} mode...`);
-  
-  switch (MODE) {
-    case "http":
-      startHttpServer();
-      break;
-    case "mcp":
-      startMcpServer();
-      break;
-    case "hybrid":
-    default:
-      // Start both MCP and HTTP servers
-      if (process.stdin.isTTY) {
-        // If running in terminal (not piped), start HTTP server
+  try {
+    console.error(`Starting WooCommerce server in ${MODE} mode...`);
+    
+    switch (MODE) {
+      case "http":
         startHttpServer();
-      } else {
-        // If stdin is piped (MCP mode), start MCP server
+        break;
+      case "mcp":
         startMcpServer();
-      }
-      break;
+        break;
+      case "hybrid":
+      default:
+        // Start both MCP and HTTP servers
+        if (process.stdin.isTTY) {
+          // If running in terminal (not piped), start HTTP server
+          startHttpServer();
+        } else {
+          // If stdin is piped (MCP mode), start MCP server
+          startMcpServer();
+        }
+        break;
+    }
+    
+    // Keep process alive
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      process.exit(1);
+    });
+    
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      process.exit(1);
+    });
+    
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
   }
 }
 
