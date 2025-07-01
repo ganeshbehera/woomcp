@@ -327,67 +327,44 @@ function startHttpServer() {
     }
     sseConnections.get(channel)!.push(res);
 
-    // Send initial connection message
+    // Send simple endpoint info like Pipedream (n8n compatible)
+    const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const domain = process.env.EASYPANEL_DOMAIN || `http://localhost:${HTTP_PORT}`;
+    
+    res.write(`event: endpoint\n`);
+    res.write(`data: ${domain}/api/woocommerce?channel=${channel}&sessionId=${sessionId}\n\n`);
+
+    // Send connection confirmation
     res.write(`data: ${JSON.stringify({
       type: "connected",
       channel: channel,
+      sessionId: sessionId,
       timestamp: new Date().toISOString()
     })}\n\n`);
 
-    // Start streaming WooCommerce data based on channel
-    const streamData = async () => {
+    // Send periodic lightweight updates (every 10 seconds)
+    const sendUpdate = () => {
       try {
-        let method = "";
-        let params = {};
-        
-        switch (channel) {
-          case "products":
-          case "woocommerce":
-            method = "get_products";
-            params = { perPage: 5, page: 1 };
-            break;
-          case "orders":
-            method = "get_orders";
-            params = { perPage: 5, page: 1 };
-            break;
-          default:
-            method = "get_products";
-            params = { perPage: 3, page: 1 };
-            break;
-        }
-
-        const result = await handleWooCommerceRequest(method, params);
-        
-        // Send the WooCommerce data via SSE
-        res.write(`event: ${channel}_data\n`);
+        res.write(`event: heartbeat\n`);
         res.write(`data: ${JSON.stringify({
-          type: "data_stream",
+          type: "heartbeat",
           channel: channel,
-          method: method,
-          data: result,
-          timestamp: new Date().toISOString()
+          sessionId: sessionId,
+          timestamp: new Date().toISOString(),
+          status: "active"
         })}\n\n`);
-        
       } catch (error) {
-        res.write(`event: error\n`);
-        res.write(`data: ${JSON.stringify({
-          type: "error",
-          channel: channel,
-          error: error instanceof Error ? error.message : String(error),
-          timestamp: new Date().toISOString()
-        })}\n\n`);
+        // Connection closed, ignore
       }
     };
 
-    // Send initial data immediately
-    await streamData();
-    
-    // Set up periodic data streaming (every 30 seconds)
-    const streamInterval = setInterval(streamData, 30000);
+    // Send immediate update and then periodic ones
+    sendUpdate();
+    const updateInterval = setInterval(sendUpdate, 10000);
 
     // Handle client disconnect
     req.on("close", () => {
-      clearInterval(streamInterval);
+      clearInterval(updateInterval);
       const connections = sseConnections.get(channel);
       if (connections) {
         const index = connections.indexOf(res);
@@ -406,6 +383,48 @@ function startHttpServer() {
       res.json({
         success: true,
         data: result
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Special SSE data endpoint (like Pipedream pattern)
+  app.get("/api/woocommerce", async (req: Request, res: Response) => {
+    try {
+      const channel = req.query.channel as string || "woocommerce";
+      const sessionId = req.query.sessionId as string;
+      
+      let method = "";
+      let params = {};
+      
+      switch (channel) {
+        case "products":
+          method = "get_products";
+          params = { perPage: 5, page: 1 };
+          break;
+        case "orders":
+          method = "get_orders";
+          params = { perPage: 5, page: 1 };
+          break;
+        case "woocommerce":
+        default:
+          method = "get_products";
+          params = { perPage: 3, page: 1 };
+          break;
+      }
+
+      const result = await handleWooCommerceRequest(method, params);
+      res.json({
+        success: true,
+        sessionId: sessionId,
+        channel: channel,
+        method: method,
+        data: result,
+        timestamp: new Date().toISOString()
       });
     } catch (error) {
       res.status(500).json({
