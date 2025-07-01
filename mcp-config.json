@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "woocommerce": {
+      "command": "node",
+      "args": ["build/index.js"],
+      "env": {
+        "WORDPRESS_SITE_URL": "https://your-wordpress-site.com",
+        "WOOCOMMERCE_CONSUMER_KEY": "your-woocommerce-consumer-key",
+        "WOOCOMMERCE_CONSUMER_SECRET": "your-woocommerce-consumer-secret",
+        "WORDPRESS_USERNAME": "your-wordpress-username",
+        "WORDPRESS_PASSWORD": "your-wordpress-password"
+      }
+    }
+  }
+} 
