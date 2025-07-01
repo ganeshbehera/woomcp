@@ -309,7 +309,7 @@ function startHttpServer() {
   });
 
   // SSE endpoint for real-time updates
-  app.get("/events/:channel", (req: Request, res: Response) => {
+  app.get("/events/:channel", async (req: Request, res: Response) => {
     const channel = req.params.channel;
     
     // Set SSE headers
@@ -334,8 +334,60 @@ function startHttpServer() {
       timestamp: new Date().toISOString()
     })}\n\n`);
 
+    // Start streaming WooCommerce data based on channel
+    const streamData = async () => {
+      try {
+        let method = "";
+        let params = {};
+        
+        switch (channel) {
+          case "products":
+          case "woocommerce":
+            method = "get_products";
+            params = { perPage: 5, page: 1 };
+            break;
+          case "orders":
+            method = "get_orders";
+            params = { perPage: 5, page: 1 };
+            break;
+          default:
+            method = "get_products";
+            params = { perPage: 3, page: 1 };
+            break;
+        }
+
+        const result = await handleWooCommerceRequest(method, params);
+        
+        // Send the WooCommerce data via SSE
+        res.write(`event: ${channel}_data\n`);
+        res.write(`data: ${JSON.stringify({
+          type: "data_stream",
+          channel: channel,
+          method: method,
+          data: result,
+          timestamp: new Date().toISOString()
+        })}\n\n`);
+        
+      } catch (error) {
+        res.write(`event: error\n`);
+        res.write(`data: ${JSON.stringify({
+          type: "error",
+          channel: channel,
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString()
+        })}\n\n`);
+      }
+    };
+
+    // Send initial data immediately
+    await streamData();
+    
+    // Set up periodic data streaming (every 30 seconds)
+    const streamInterval = setInterval(streamData, 30000);
+
     // Handle client disconnect
     req.on("close", () => {
+      clearInterval(streamInterval);
       const connections = sseConnections.get(channel);
       if (connections) {
         const index = connections.indexOf(res);
