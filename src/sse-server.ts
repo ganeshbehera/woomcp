@@ -331,65 +331,20 @@ function startHttpServer() {
     // Generate session ID
     const sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
-    // Send endpoint info first (n8n MCP pattern)
+    // Send only the endpoint event (Pipedream pattern)
     res.write(`event: endpoint\ndata: ${process.env.EASYPANEL_DOMAIN || 'https://others-woomcp.g5n7ma.easypanel.host'}/api/woocommerce?channel=${channel}&sessionId=${sessionId}\n\n`);
 
-    // Send connected event (traditional SSE)
-    res.write(`data: ${JSON.stringify({
-      type: "connected",
-      channel: channel,
-      sessionId: sessionId,
-      timestamp: new Date().toISOString()
-    })}\n\n`);
+    // Close the connection immediately after sending the endpoint
+    res.end();
 
-    // Send default message event (n8n might expect this)
-    res.write(`event: message\ndata: ${JSON.stringify({
-      type: "ready",
-      channel: channel,
-      sessionId: sessionId,
-      status: "connected",
-      timestamp: new Date().toISOString()
-    })}\n\n`);
-
-    // Send tool_result event (MCP pattern)
-    res.write(`event: tool_result\ndata: ${JSON.stringify({
-      type: "connection_established",
-      channel: channel,
-      sessionId: sessionId,
-      available_tools: ["get_products", "get_orders", "get_customers"],
-      timestamp: new Date().toISOString()
-    })}\n\n`);
-
-    // Heartbeat to keep connection alive
-    const heartbeatInterval = setInterval(() => {
-      if (res.writableEnded) {
-        clearInterval(heartbeatInterval);
-        return;
+    // Remove from connections since we're closing
+    const connections = sseConnections.get(channel);
+    if (connections) {
+      const index = connections.indexOf(res);
+      if (index !== -1) {
+        connections.splice(index, 1);
       }
-      res.write(`event: heartbeat\ndata: ${JSON.stringify({
-        type: "heartbeat",
-        channel: channel,
-        sessionId: sessionId,
-        timestamp: new Date().toISOString(),
-        status: "active"
-      })}\n\n`);
-    }, 30000); // Every 30 seconds
-
-    // Handle client disconnect
-    req.on("close", () => {
-      clearInterval(heartbeatInterval);
-      const connections = sseConnections.get(channel);
-      if (connections) {
-        const index = connections.indexOf(res);
-        if (index !== -1) {
-          connections.splice(index, 1);
-        }
-      }
-    });
-
-    req.on("aborted", () => {
-      clearInterval(heartbeatInterval);
-    });
+    }
   });
 
   // REST API endpoints
