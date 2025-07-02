@@ -50,72 +50,168 @@ const DEFAULT_PASSWORD = process.env.WORDPRESS_PASSWORD || "";
 const DEFAULT_CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || "";
 const DEFAULT_CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || "";
 
-// MCP Server Capabilities
+// MCP Server Capabilities - Complete tool definitions from README
 const MCP_CAPABILITIES = {
   experimental: {},
   prompts: {},
   resources: {},
   tools: {
-    list_tools: {
-      description: "List all available WooCommerce and WordPress tools"
-    },
-    get_products: {
-      description: "Get WooCommerce products with optional filters",
-      inputSchema: {
-        type: "object",
-        properties: {
-          perPage: { type: "number", description: "Number of products to retrieve (max 100)" },
-          page: { type: "number", description: "Page number" },
-          search: { type: "string", description: "Search term" },
-          category: { type: "string", description: "Product category ID" },
-          tag: { type: "string", description: "Product tag ID" },
-          status: { type: "string", enum: ["draft", "pending", "private", "publish"] },
-          type: { type: "string", enum: ["simple", "grouped", "external", "variable"] },
-          sku: { type: "string", description: "Product SKU" },
-          featured: { type: "boolean", description: "Limit to featured products" },
-          siteUrl: { type: "string", description: "WordPress site URL" },
-          consumerKey: { type: "string", description: "WooCommerce consumer key" },
-          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
-        }
-      }
-    },
-    get_orders: {
-      description: "Get WooCommerce orders with optional filters",
-      inputSchema: {
-        type: "object", 
-        properties: {
-          perPage: { type: "number", description: "Number of orders to retrieve (max 100)" },
-          page: { type: "number", description: "Page number" },
-          search: { type: "string", description: "Search term" },
-          status: { type: "string", enum: ["pending", "processing", "on-hold", "completed", "cancelled", "refunded", "failed", "trash"] },
-          customer: { type: "number", description: "Customer ID" },
-          product: { type: "number", description: "Product ID" },
-          after: { type: "string", description: "Limit to orders created after date (ISO8601)" },
-          before: { type: "string", description: "Limit to orders created before date (ISO8601)" },
-          siteUrl: { type: "string", description: "WordPress site URL" },
-          consumerKey: { type: "string", description: "WooCommerce consumer key" },
-          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
-        }
-      }
-    },
-    get_customers: {
-      description: "Get WooCommerce customers with optional filters",
-      inputSchema: {
-        type: "object",
-        properties: {
-          perPage: { type: "number", description: "Number of customers to retrieve (max 100)" },
-          page: { type: "number", description: "Page number" },
-          search: { type: "string", description: "Search term" },
-          email: { type: "string", description: "Customer email" },
-          role: { type: "string", description: "Customer role" },
-          orderby: { type: "string", enum: ["id", "include", "name", "registered_date"] },
-          order: { type: "string", enum: ["asc", "desc"] },
-          siteUrl: { type: "string", description: "WordPress site URL" },
-          consumerKey: { type: "string", description: "WooCommerce consumer key" },
-          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
-        }
-      }
-    }
+    // === WordPress Content Management ===
+    create_post: { description: "Create a new WordPress post" },
+    get_posts: { description: "Retrieve WordPress posts" },
+    update_post: { description: "Update an existing WordPress post" },
+    get_post_meta: { description: "Get post metadata" },
+    update_post_meta: { description: "Update post metadata" },
+    create_post_meta: { description: "Create post metadata" },
+    delete_post_meta: { description: "Delete post metadata" },
+    
+    // === WooCommerce Products ===
+    get_products: { description: "Retrieve a list of products" },
+    get_product: { description: "Get a single product by ID" },
+    create_product: { description: "Create a new product" },
+    update_product: { description: "Update an existing product" },
+    delete_product: { description: "Delete a product" },
+    get_product_meta: { description: "Get product metadata" },
+    create_product_meta: { description: "Create/update product metadata" },
+    update_product_meta: { description: "Update product metadata" },
+    delete_product_meta: { description: "Delete product metadata" },
+    
+    // === Product Categories ===
+    get_product_categories: { description: "Retrieve product categories" },
+    get_product_category: { description: "Get a single product category" },
+    create_product_category: { description: "Create a new product category" },
+    update_product_category: { description: "Update a product category" },
+    delete_product_category: { description: "Delete a product category" },
+    
+    // === Product Tags ===
+    get_product_tags: { description: "Retrieve product tags" },
+    get_product_tag: { description: "Get a single product tag" },
+    create_product_tag: { description: "Create a new product tag" },
+    update_product_tag: { description: "Update a product tag" },
+    delete_product_tag: { description: "Delete a product tag" },
+    
+    // === Product Attributes ===
+    get_product_attributes: { description: "Retrieve product attributes" },
+    get_product_attribute: { description: "Get a single product attribute" },
+    create_product_attribute: { description: "Create a new product attribute" },
+    update_product_attribute: { description: "Update a product attribute" },
+    delete_product_attribute: { description: "Delete a product attribute" },
+    get_attribute_terms: { description: "Retrieve attribute terms" },
+    get_attribute_term: { description: "Get a single attribute term" },
+    create_attribute_term: { description: "Create a new attribute term" },
+    update_attribute_term: { description: "Update an attribute term" },
+    delete_attribute_term: { description: "Delete an attribute term" },
+    
+    // === Product Variations ===
+    get_product_variations: { description: "Retrieve product variations" },
+    get_product_variation: { description: "Get a single product variation" },
+    create_product_variation: { description: "Create a new product variation" },
+    update_product_variation: { description: "Update a product variation" },
+    delete_product_variation: { description: "Delete a product variation" },
+    
+    // === Product Reviews ===
+    get_product_reviews: { description: "Retrieve product reviews" },
+    get_product_review: { description: "Get a single product review" },
+    create_product_review: { description: "Create a new product review" },
+    update_product_review: { description: "Update a product review" },
+    delete_product_review: { description: "Delete a product review" },
+    
+    // === WooCommerce Orders ===
+    get_orders: { description: "Retrieve a list of orders" },
+    get_order: { description: "Get a single order by ID" },
+    create_order: { description: "Create a new order" },
+    update_order: { description: "Update an existing order" },
+    delete_order: { description: "Delete an order" },
+    get_order_meta: { description: "Get order metadata" },
+    create_order_meta: { description: "Create/update order metadata" },
+    update_order_meta: { description: "Update order metadata" },
+    delete_order_meta: { description: "Delete order metadata" },
+    
+    // === Order Notes ===
+    get_order_notes: { description: "Retrieve order notes" },
+    get_order_note: { description: "Get a single order note" },
+    create_order_note: { description: "Create a new order note" },
+    delete_order_note: { description: "Delete an order note" },
+    
+    // === Order Refunds ===
+    get_order_refunds: { description: "Retrieve order refunds" },
+    get_order_refund: { description: "Get a single order refund" },
+    create_order_refund: { description: "Create a new order refund" },
+    delete_order_refund: { description: "Delete an order refund" },
+    
+    // === WooCommerce Customers ===
+    get_customers: { description: "Retrieve a list of customers" },
+    get_customer: { description: "Get a single customer by ID" },
+    create_customer: { description: "Create a new customer" },
+    update_customer: { description: "Update an existing customer" },
+    delete_customer: { description: "Delete a customer" },
+    get_customer_meta: { description: "Get customer metadata" },
+    create_customer_meta: { description: "Create/update customer metadata" },
+    update_customer_meta: { description: "Update customer metadata" },
+    delete_customer_meta: { description: "Delete customer metadata" },
+    
+    // === Shipping ===
+    get_shipping_zones: { description: "Retrieve shipping zones" },
+    get_shipping_zone: { description: "Get a single shipping zone" },
+    create_shipping_zone: { description: "Create a new shipping zone" },
+    update_shipping_zone: { description: "Update a shipping zone" },
+    delete_shipping_zone: { description: "Delete a shipping zone" },
+    get_shipping_methods: { description: "Retrieve shipping methods" },
+    get_shipping_zone_methods: { description: "Get shipping methods for a zone" },
+    create_shipping_zone_method: { description: "Create a new shipping method for a zone" },
+    update_shipping_zone_method: { description: "Update a shipping method for a zone" },
+    delete_shipping_zone_method: { description: "Delete a shipping method from a zone" },
+    get_shipping_zone_locations: { description: "Get locations for a shipping zone" },
+    update_shipping_zone_locations: { description: "Update locations for a shipping zone" },
+    
+    // === Taxes ===
+    get_tax_classes: { description: "Retrieve tax classes" },
+    create_tax_class: { description: "Create a new tax class" },
+    delete_tax_class: { description: "Delete a tax class" },
+    get_tax_rates: { description: "Retrieve tax rates" },
+    get_tax_rate: { description: "Get a single tax rate" },
+    create_tax_rate: { description: "Create a new tax rate" },
+    update_tax_rate: { description: "Update a tax rate" },
+    delete_tax_rate: { description: "Delete a tax rate" },
+    
+    // === Discounts/Coupons ===
+    get_coupons: { description: "Retrieve coupons" },
+    get_coupon: { description: "Get a single coupon" },
+    create_coupon: { description: "Create a new coupon" },
+    update_coupon: { description: "Update a coupon" },
+    delete_coupon: { description: "Delete a coupon" },
+    
+    // === Payment Gateways ===
+    get_payment_gateways: { description: "Retrieve payment gateways" },
+    get_payment_gateway: { description: "Get a single payment gateway" },
+    update_payment_gateway: { description: "Update a payment gateway" },
+    
+    // === Reports ===
+    get_sales_report: { description: "Retrieve sales reports" },
+    get_products_report: { description: "Retrieve products reports" },
+    get_orders_report: { description: "Retrieve orders reports" },
+    get_categories_report: { description: "Retrieve categories reports" },
+    get_customers_report: { description: "Retrieve customers reports" },
+    get_stock_report: { description: "Retrieve stock reports" },
+    get_coupons_report: { description: "Retrieve coupons reports" },
+    get_taxes_report: { description: "Retrieve taxes reports" },
+    
+    // === Settings ===
+    get_settings: { description: "Retrieve all settings" },
+    get_setting_options: { description: "Retrieve options for a setting" },
+    update_setting_option: { description: "Update a setting option" },
+    
+    // === System Status ===
+    get_system_status: { description: "Retrieve system status" },
+    get_system_status_tools: { description: "Retrieve system status tools" },
+    run_system_status_tool: { description: "Run a system status tool" },
+    
+    // === Data ===
+    get_data: { description: "Retrieve store data" },
+    get_continents: { description: "Retrieve continents data" },
+    get_countries: { description: "Retrieve countries data" },
+    get_currencies: { description: "Retrieve currencies data" },
+    get_current_currency: { description: "Get the current currency" }
   }
 };
 
