@@ -66,11 +66,161 @@ const MCP_CAPABILITIES = {
     delete_post_meta: { description: "Delete post metadata" },
     
     // === WooCommerce Products ===
-    get_products: { description: "Retrieve a list of products" },
-    get_product: { description: "Get a single product by ID" },
-    create_product: { description: "Create a new product" },
-    update_product: { description: "Update an existing product" },
-    delete_product: { description: "Delete a product" },
+    get_products: { 
+      description: "Retrieve a list of products",
+      inputSchema: {
+        type: "object",
+        properties: {
+          perPage: { type: "number", description: "Number of products to retrieve (max 100)" },
+          page: { type: "number", description: "Page number" },
+          search: { type: "string", description: "Search term" },
+          category: { type: "string", description: "Product category ID" },
+          tag: { type: "string", description: "Product tag ID" },
+          status: { type: "string", enum: ["draft", "pending", "private", "publish"] },
+          type: { type: "string", enum: ["simple", "grouped", "external", "variable"] },
+          sku: { type: "string", description: "Product SKU" },
+          featured: { type: "boolean", description: "Limit to featured products" },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        }
+      }
+    },
+    get_product: { 
+      description: "Get a single product by ID",
+      inputSchema: {
+        type: "object",
+        properties: {
+          productId: { type: "number", description: "Product ID", required: true },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["productId"]
+      }
+    },
+    create_product: { 
+      description: "Create a new product",
+      inputSchema: {
+        type: "object",
+        properties: {
+          productData: {
+            type: "object",
+            description: "Product data object",
+            properties: {
+              name: { type: "string", description: "Product name" },
+              type: { type: "string", enum: ["simple", "grouped", "external", "variable"], description: "Product type" },
+              regular_price: { type: "string", description: "Product regular price" },
+              sale_price: { type: "string", description: "Product sale price" },
+              description: { type: "string", description: "Product description" },
+              short_description: { type: "string", description: "Product short description" },
+              sku: { type: "string", description: "Product SKU" },
+              manage_stock: { type: "boolean", description: "Enable stock management" },
+              stock_quantity: { type: "number", description: "Stock quantity" },
+              stock_status: { type: "string", enum: ["instock", "outofstock", "onbackorder"], description: "Stock status" },
+              weight: { type: "string", description: "Product weight" },
+              dimensions: {
+                type: "object",
+                properties: {
+                  length: { type: "string", description: "Product length" },
+                  width: { type: "string", description: "Product width" },
+                  height: { type: "string", description: "Product height" }
+                }
+              },
+              categories: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "number", description: "Category ID" }
+                  }
+                },
+                description: "Product categories"
+              },
+              tags: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "number", description: "Tag ID" }
+                  }
+                },
+                description: "Product tags"
+              },
+              images: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    src: { type: "string", description: "Image URL" },
+                    alt: { type: "string", description: "Image alt text" }
+                  }
+                },
+                description: "Product images"
+              },
+              attributes: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "number", description: "Attribute ID" },
+                    name: { type: "string", description: "Attribute name" },
+                    options: { type: "array", items: { type: "string" }, description: "Attribute options" }
+                  }
+                },
+                description: "Product attributes"
+              }
+            },
+            required: ["name", "type"]
+          },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["productData"]
+      }
+    },
+    update_product: { 
+      description: "Update an existing product",
+      inputSchema: {
+        type: "object",
+        properties: {
+          productId: { type: "number", description: "Product ID to update", required: true },
+          productData: {
+            type: "object",
+            description: "Product data to update",
+            properties: {
+              name: { type: "string", description: "Product name" },
+              type: { type: "string", enum: ["simple", "grouped", "external", "variable"], description: "Product type" },
+              regular_price: { type: "string", description: "Product regular price" },
+              sale_price: { type: "string", description: "Product sale price" },
+              description: { type: "string", description: "Product description" },
+              short_description: { type: "string", description: "Product short description" },
+              sku: { type: "string", description: "Product SKU" },
+              stock_status: { type: "string", enum: ["instock", "outofstock", "onbackorder"], description: "Stock status" }
+            }
+          },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["productId", "productData"]
+      }
+    },
+    delete_product: { 
+      description: "Delete a product",
+      inputSchema: {
+        type: "object",
+        properties: {
+          productId: { type: "number", description: "Product ID to delete", required: true },
+          force: { type: "boolean", description: "Whether to bypass trash and force deletion" },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["productId"]
+      }
+    },
     get_product_meta: { description: "Get product metadata" },
     create_product_meta: { description: "Create/update product metadata" },
     update_product_meta: { description: "Update product metadata" },
@@ -117,11 +267,148 @@ const MCP_CAPABILITIES = {
     delete_product_review: { description: "Delete a product review" },
     
     // === WooCommerce Orders ===
-    get_orders: { description: "Retrieve a list of orders" },
-    get_order: { description: "Get a single order by ID" },
-    create_order: { description: "Create a new order" },
-    update_order: { description: "Update an existing order" },
-    delete_order: { description: "Delete an order" },
+    get_orders: { 
+      description: "Retrieve a list of orders",
+      inputSchema: {
+        type: "object",
+        properties: {
+          perPage: { type: "number", description: "Number of orders to retrieve (max 100)" },
+          page: { type: "number", description: "Page number" },
+          search: { type: "string", description: "Search term" },
+          status: { type: "string", enum: ["pending", "processing", "on-hold", "completed", "cancelled", "refunded", "failed", "trash"] },
+          customer: { type: "number", description: "Customer ID" },
+          product: { type: "number", description: "Product ID" },
+          after: { type: "string", description: "Limit to orders created after date (ISO8601)" },
+          before: { type: "string", description: "Limit to orders created before date (ISO8601)" },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        }
+      }
+    },
+    get_order: { 
+      description: "Get a single order by ID",
+      inputSchema: {
+        type: "object",
+        properties: {
+          orderId: { type: "number", description: "Order ID", required: true },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["orderId"]
+      }
+    },
+    create_order: { 
+      description: "Create a new order",
+      inputSchema: {
+        type: "object",
+        properties: {
+          orderData: {
+            type: "object",
+            description: "Order data object",
+            properties: {
+              status: { type: "string", enum: ["pending", "processing", "on-hold", "completed", "cancelled", "refunded", "failed"], description: "Order status" },
+              customer_id: { type: "number", description: "Customer ID" },
+              billing: {
+                type: "object",
+                properties: {
+                  first_name: { type: "string", description: "First name" },
+                  last_name: { type: "string", description: "Last name" },
+                  company: { type: "string", description: "Company name" },
+                  address_1: { type: "string", description: "Address line 1" },
+                  address_2: { type: "string", description: "Address line 2" },
+                  city: { type: "string", description: "City" },
+                  state: { type: "string", description: "State" },
+                  postcode: { type: "string", description: "Postal code" },
+                  country: { type: "string", description: "Country code" },
+                  email: { type: "string", description: "Email address" },
+                  phone: { type: "string", description: "Phone number" }
+                }
+              },
+              shipping: {
+                type: "object",
+                properties: {
+                  first_name: { type: "string", description: "First name" },
+                  last_name: { type: "string", description: "Last name" },
+                  company: { type: "string", description: "Company name" },
+                  address_1: { type: "string", description: "Address line 1" },
+                  address_2: { type: "string", description: "Address line 2" },
+                  city: { type: "string", description: "City" },
+                  state: { type: "string", description: "State" },
+                  postcode: { type: "string", description: "Postal code" },
+                  country: { type: "string", description: "Country code" }
+                }
+              },
+              line_items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    product_id: { type: "number", description: "Product ID" },
+                    variation_id: { type: "number", description: "Variation ID" },
+                    quantity: { type: "number", description: "Quantity" }
+                  },
+                  required: ["product_id", "quantity"]
+                },
+                description: "Order line items"
+              },
+              shipping_lines: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    method_id: { type: "string", description: "Shipping method ID" },
+                    method_title: { type: "string", description: "Shipping method title" },
+                    total: { type: "string", description: "Shipping total" }
+                  }
+                },
+                description: "Shipping lines"
+              }
+            }
+          },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["orderData"]
+      }
+    },
+    update_order: { 
+      description: "Update an existing order",
+      inputSchema: {
+        type: "object",
+        properties: {
+          orderId: { type: "number", description: "Order ID to update", required: true },
+          orderData: {
+            type: "object",
+            description: "Order data to update",
+            properties: {
+              status: { type: "string", enum: ["pending", "processing", "on-hold", "completed", "cancelled", "refunded", "failed"], description: "Order status" },
+              customer_note: { type: "string", description: "Customer note" }
+            }
+          },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["orderId", "orderData"]
+      }
+    },
+    delete_order: { 
+      description: "Delete an order",
+      inputSchema: {
+        type: "object",
+        properties: {
+          orderId: { type: "number", description: "Order ID to delete", required: true },
+          force: { type: "boolean", description: "Whether to bypass trash and force deletion" },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["orderId"]
+      }
+    },
     get_order_meta: { description: "Get order metadata" },
     create_order_meta: { description: "Create/update order metadata" },
     update_order_meta: { description: "Update order metadata" },
@@ -140,11 +427,129 @@ const MCP_CAPABILITIES = {
     delete_order_refund: { description: "Delete an order refund" },
     
     // === WooCommerce Customers ===
-    get_customers: { description: "Retrieve a list of customers" },
-    get_customer: { description: "Get a single customer by ID" },
-    create_customer: { description: "Create a new customer" },
-    update_customer: { description: "Update an existing customer" },
-    delete_customer: { description: "Delete a customer" },
+    get_customers: { 
+      description: "Retrieve a list of customers",
+      inputSchema: {
+        type: "object",
+        properties: {
+          perPage: { type: "number", description: "Number of customers to retrieve (max 100)" },
+          page: { type: "number", description: "Page number" },
+          search: { type: "string", description: "Search term" },
+          email: { type: "string", description: "Customer email" },
+          role: { type: "string", description: "Customer role" },
+          orderby: { type: "string", enum: ["id", "include", "name", "registered_date"] },
+          order: { type: "string", enum: ["asc", "desc"] },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        }
+      }
+    },
+    get_customer: { 
+      description: "Get a single customer by ID",
+      inputSchema: {
+        type: "object",
+        properties: {
+          customerId: { type: "number", description: "Customer ID", required: true },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["customerId"]
+      }
+    },
+    create_customer: { 
+      description: "Create a new customer",
+      inputSchema: {
+        type: "object",
+        properties: {
+          customerData: {
+            type: "object",
+            description: "Customer data object",
+            properties: {
+              email: { type: "string", description: "Customer email address" },
+              first_name: { type: "string", description: "Customer first name" },
+              last_name: { type: "string", description: "Customer last name" },
+              username: { type: "string", description: "Customer username" },
+              password: { type: "string", description: "Customer password" },
+              billing: {
+                type: "object",
+                properties: {
+                  first_name: { type: "string", description: "First name" },
+                  last_name: { type: "string", description: "Last name" },
+                  company: { type: "string", description: "Company name" },
+                  address_1: { type: "string", description: "Address line 1" },
+                  address_2: { type: "string", description: "Address line 2" },
+                  city: { type: "string", description: "City" },
+                  state: { type: "string", description: "State" },
+                  postcode: { type: "string", description: "Postal code" },
+                  country: { type: "string", description: "Country code" },
+                  email: { type: "string", description: "Email address" },
+                  phone: { type: "string", description: "Phone number" }
+                }
+              },
+              shipping: {
+                type: "object",
+                properties: {
+                  first_name: { type: "string", description: "First name" },
+                  last_name: { type: "string", description: "Last name" },
+                  company: { type: "string", description: "Company name" },
+                  address_1: { type: "string", description: "Address line 1" },
+                  address_2: { type: "string", description: "Address line 2" },
+                  city: { type: "string", description: "City" },
+                  state: { type: "string", description: "State" },
+                  postcode: { type: "string", description: "Postal code" },
+                  country: { type: "string", description: "Country code" }
+                }
+              }
+            },
+            required: ["email"]
+          },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["customerData"]
+      }
+    },
+    update_customer: { 
+      description: "Update an existing customer",
+      inputSchema: {
+        type: "object",
+        properties: {
+          customerId: { type: "number", description: "Customer ID to update", required: true },
+          customerData: {
+            type: "object",
+            description: "Customer data to update",
+            properties: {
+              email: { type: "string", description: "Customer email address" },
+              first_name: { type: "string", description: "Customer first name" },
+              last_name: { type: "string", description: "Customer last name" },
+              username: { type: "string", description: "Customer username" }
+            }
+          },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["customerId", "customerData"]
+      }
+    },
+    delete_customer: { 
+      description: "Delete a customer",
+      inputSchema: {
+        type: "object",
+        properties: {
+          customerId: { type: "number", description: "Customer ID to delete", required: true },
+          force: { type: "boolean", description: "Whether to bypass trash and force deletion" },
+          reassign: { type: "number", description: "User ID to reassign posts to" },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        },
+        required: ["customerId"]
+      }
+    },
     get_customer_meta: { description: "Get customer metadata" },
     create_customer_meta: { description: "Create/update customer metadata" },
     update_customer_meta: { description: "Update customer metadata" },
@@ -2020,13 +2425,13 @@ app.post('/message', async (req, res) => {
     }
   } catch (error) {
     return res.json({
-      jsonrpc: "2.0",
-      id: null,
-      error: {
-        code: -32700,
-        message: "Parse error",
-        data: error instanceof Error ? error.message : String(error),
-      },
+        jsonrpc: "2.0",
+        id: null,
+        error: {
+          code: -32700,
+          message: "Parse error",
+          data: error instanceof Error ? error.message : String(error),
+        },
     });
   }
 
@@ -2048,18 +2453,18 @@ app.post('/message', async (req, res) => {
     }
 
     res.json({
-      jsonrpc: "2.0",
-      id: request.id,
-      result,
+        jsonrpc: "2.0",
+        id: request.id,
+        result,
     });
   } catch (error) {
     res.json({
-      jsonrpc: "2.0",
-      id: request.id,
-      error: {
-        code: -32000,
-        message: error instanceof Error ? error.message : String(error),
-      },
+        jsonrpc: "2.0",
+        id: request.id,
+        error: {
+          code: -32000,
+          message: error instanceof Error ? error.message : String(error),
+        },
     });
   }
 });
