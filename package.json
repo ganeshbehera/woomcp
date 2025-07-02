@@ -5,13 +5,14 @@
   "main": "build/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node build/sse-server.js",
-    "start:sse": "node build/sse-server.js",
-    "start:mcp": "SERVER_MODE=mcp node build/sse-server.js",
-    "start:http": "SERVER_MODE=http node build/sse-server.js",
-    "dev": "npm run build && npm start",
-    "dev:sse": "npm run build && npm run start:sse"
-      },
+    "start": "node build/index.js",
+    "start:mcp": "node build/index.js",
+    "start:http": "node build/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "curl -X POST https://others-woomcp.g5n7ma.easypanel.host/message -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\"}'",
+    "test:tools": "curl -X POST https://others-woomcp.g5n7ma.easypanel.host/message -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}'",
+    "test:local": "curl -X POST http://localhost:80/message -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\"}'"
+  },
   "dependencies": {
     "axios": "^1.7.9",
     "express": "^4.18.2",

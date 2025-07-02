@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import axios from "axios";
-import { createInterface } from "readline";
+import express from "express";
+import cors from "cors";
 import { WooMetaData } from "./types";
 
 interface JsonRpcRequest {
@@ -48,6 +49,98 @@ const DEFAULT_USERNAME = process.env.WORDPRESS_USERNAME || "";
 const DEFAULT_PASSWORD = process.env.WORDPRESS_PASSWORD || "";
 const DEFAULT_CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || "";
 const DEFAULT_CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || "";
+
+// MCP Server Capabilities
+const MCP_CAPABILITIES = {
+  experimental: {},
+  prompts: {},
+  resources: {},
+  tools: {
+    list_tools: {
+      description: "List all available WooCommerce and WordPress tools"
+    },
+    get_products: {
+      description: "Get WooCommerce products with optional filters",
+      inputSchema: {
+        type: "object",
+        properties: {
+          perPage: { type: "number", description: "Number of products to retrieve (max 100)" },
+          page: { type: "number", description: "Page number" },
+          search: { type: "string", description: "Search term" },
+          category: { type: "string", description: "Product category ID" },
+          tag: { type: "string", description: "Product tag ID" },
+          status: { type: "string", enum: ["draft", "pending", "private", "publish"] },
+          type: { type: "string", enum: ["simple", "grouped", "external", "variable"] },
+          sku: { type: "string", description: "Product SKU" },
+          featured: { type: "boolean", description: "Limit to featured products" },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        }
+      }
+    },
+    get_orders: {
+      description: "Get WooCommerce orders with optional filters",
+      inputSchema: {
+        type: "object", 
+        properties: {
+          perPage: { type: "number", description: "Number of orders to retrieve (max 100)" },
+          page: { type: "number", description: "Page number" },
+          search: { type: "string", description: "Search term" },
+          status: { type: "string", enum: ["pending", "processing", "on-hold", "completed", "cancelled", "refunded", "failed", "trash"] },
+          customer: { type: "number", description: "Customer ID" },
+          product: { type: "number", description: "Product ID" },
+          after: { type: "string", description: "Limit to orders created after date (ISO8601)" },
+          before: { type: "string", description: "Limit to orders created before date (ISO8601)" },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        }
+      }
+    },
+    get_customers: {
+      description: "Get WooCommerce customers with optional filters",
+      inputSchema: {
+        type: "object",
+        properties: {
+          perPage: { type: "number", description: "Number of customers to retrieve (max 100)" },
+          page: { type: "number", description: "Page number" },
+          search: { type: "string", description: "Search term" },
+          email: { type: "string", description: "Customer email" },
+          role: { type: "string", description: "Customer role" },
+          orderby: { type: "string", enum: ["id", "include", "name", "registered_date"] },
+          order: { type: "string", enum: ["asc", "desc"] },
+          siteUrl: { type: "string", description: "WordPress site URL" },
+          consumerKey: { type: "string", description: "WooCommerce consumer key" },
+          consumerSecret: { type: "string", description: "WooCommerce consumer secret" }
+        }
+      }
+    }
+  }
+};
+
+// Handle MCP initialization
+async function handleMcpInitialization(): Promise<any> {
+  return {
+    protocolVersion: "2024-11-05",
+    capabilities: MCP_CAPABILITIES,
+    serverInfo: {
+      name: "woocommerce-mcp-server",
+      version: "1.0.0"
+    }
+  };
+}
+
+// Handle tools list request
+async function handleListTools(): Promise<any> {
+  return {
+    tools: Object.entries(MCP_CAPABILITIES.tools).map(([name, tool]) => ({
+      name,
+      description: tool.description,
+      inputSchema: (tool as any).inputSchema || { type: "object", properties: {} }
+    }))
+  };
+}
 
 async function handleWooCommerceRequest(
   method: string,
@@ -1810,63 +1903,90 @@ async function handleWooCommerceRequest(
   }
 }
 
-const rl = createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  terminal: false,
+// Create Express app with CORS
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-rl.on("line", async (line) => {
+// MCP /message endpoint for Streamable HTTP Transport  
+app.post('/message', async (req, res) => {
   let request: JsonRpcRequest;
+  
   try {
-    request = JSON.parse(line);
+    request = req.body;
     if (request.jsonrpc !== "2.0") {
       throw new Error("Invalid JSON-RPC version");
     }
   } catch (error) {
-    console.log(
-      JSON.stringify({
-        jsonrpc: "2.0",
-        id: null,
-        error: {
-          code: -32700,
-          message: "Parse error",
-          data: error instanceof Error ? error.message : String(error),
-        },
-      })
-    );
-    return;
+    return res.json({
+      jsonrpc: "2.0",
+      id: null,
+      error: {
+        code: -32700,
+        message: "Parse error",
+        data: error instanceof Error ? error.message : String(error),
+      },
+    });
   }
 
   try {
-    const result = await handleWooCommerceRequest(
-      request.method,
-      request.params
-    );
-    console.log(
-      JSON.stringify({
-        jsonrpc: "2.0",
-        id: request.id,
-        result,
-      })
-    );
+    let result;
+    
+    // Handle MCP protocol methods
+    switch (request.method) {
+      case "initialize":
+        result = await handleMcpInitialization();
+        break;
+      case "tools/list":
+        result = await handleListTools();
+        break;
+      default:
+        // Handle WooCommerce/WordPress methods
+        result = await handleWooCommerceRequest(request.method, request.params);
+        break;
+    }
+
+    res.json({
+      jsonrpc: "2.0",
+      id: request.id,
+      result,
+    });
   } catch (error) {
-    console.log(
-      JSON.stringify({
-        jsonrpc: "2.0",
-        id: request.id,
-        error: {
-          code: -32000,
-          message: error instanceof Error ? error.message : String(error),
-        },
-      })
-    );
+    res.json({
+      jsonrpc: "2.0",
+      id: request.id,
+      error: {
+        code: -32000,
+        message: error instanceof Error ? error.message : String(error),
+      },
+    });
   }
 });
 
+// Start the server
+const PORT = parseInt(process.env.PORT || '80', 10);
+const HOST = process.env.HOST || '0.0.0.0';
+const BASE_URL = process.env.BASE_URL || `https://others-woomcp.g5n7ma.easypanel.host`;
+
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 WooCommerce MCP Server running on ${HOST}:${PORT}`);
+  console.log(`📡 MCP endpoint: ${BASE_URL}/message`);
+  console.log(`❤️  Health check: ${BASE_URL}/health`);
+  console.log(`🌍 Deployment: Easypanel (${BASE_URL})`);
+});
+
+// Graceful shutdown
 process.on("SIGINT", () => {
-  rl.close();
+  console.log("\n🛑 Gracefully shutting down server...");
   process.exit(0);
 });
 
-console.error("WooCommerce MCP server running on stdin/stdout");
+process.on("SIGTERM", () => {
+  console.log("\n🛑 Received SIGTERM, shutting down gracefully...");
+  process.exit(0);
+});

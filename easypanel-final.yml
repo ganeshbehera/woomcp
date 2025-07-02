@@ -1,9 +1,9 @@
-name: woocommerce-sse-server
+name: woocommerce-mcp-server
 services:
   - type: app
     data:
-      projectName: woocommerce-sse-server
-      serviceName: woocommerce-sse-server
+      projectName: woocommerce-mcp-server
+      serviceName: woocommerce-mcp-server
       source:
         type: github
         owner: your-username
@@ -17,14 +17,14 @@ services:
         - host: others-woomcp.g5n7ma.easypanel.host
           https: true
       env:
-        - name: SERVER_MODE
-          value: http
         - name: PORT
           value: "80"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: BASE_URL
+          value: "https://others-woomcp.g5n7ma.easypanel.host"
         - name: NODE_ENV
           value: production
-        - name: EASYPANEL_DOMAIN
-          value: https://others-woomcp.g5n7ma.easypanel.host
         - name: WORDPRESS_SITE_URL
           value: https://your-wordpress-site.com
         - name: WOOCOMMERCE_CONSUMER_KEY
@@ -45,12 +45,12 @@ services:
       healthCheck:
         path: /health
         port: 80
-        initialDelaySeconds: 60
+        initialDelaySeconds: 30
         periodSeconds: 30
         timeoutSeconds: 10
         failureThreshold: 3
       readinessProbe:
-        path: /ready
+        path: /health
         port: 80
-        initialDelaySeconds: 30
+        initialDelaySeconds: 15
         periodSeconds: 10 
